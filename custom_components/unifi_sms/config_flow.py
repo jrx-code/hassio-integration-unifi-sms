@@ -118,14 +118,34 @@ class UnifiSmsConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=self.add_suggested_values_to_schema(schema, user_input), errors=errors
         )
 
-    async def async_step_authorize(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Show the generated public key to add in UniFi Network."""
-        if user_input is not None:
-            return await self.async_step_connect()
+    def _authorize_form(self, errors: dict[str, str] | None = None) -> ConfigFlowResult:
+        """Public key to add in UniFi; host, port and user stay editable so a typo
+        does not force a new key."""
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_HOST): str,
+                vol.Required(CONF_PORT): vol.All(int, vol.Range(1, 65535)),
+                vol.Required(CONF_USERNAME): str,
+            }
+        )
         return self.async_show_form(
             step_id="authorize",
+            data_schema=self.add_suggested_values_to_schema(schema, self._data),
             description_placeholders={"public_key": public_key_of(self._data[CONF_PRIVATE_KEY])},
+            errors=errors or {},
         )
+
+    async def async_step_authorize(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        if user_input is None:
+            return self._authorize_form()
+        self._data.update(
+            {
+                CONF_HOST: user_input[CONF_HOST].strip(),
+                CONF_PORT: user_input[CONF_PORT],
+                CONF_USERNAME: user_input[CONF_USERNAME].strip(),
+            }
+        )
+        return await self.async_step_connect()
 
     async def async_step_connect(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
@@ -145,11 +165,7 @@ class UnifiSmsConfigFlow(ConfigFlow, domain=DOMAIN):
                     title=f"UniFi 5G SMS ({sim.get('spn') or self._data[CONF_HOST]})",
                     data={**self._data, CONF_HOST_KEY: host_key},
                 )
-        return self.async_show_form(
-            step_id="authorize",
-            description_placeholders={"public_key": public_key_of(self._data[CONF_PRIVATE_KEY])},
-            errors=errors,
-        )
+        return self._authorize_form(errors)
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
         self._data = dict(entry_data)

@@ -13,7 +13,12 @@
       },
       "authorize": {
         "title": "Autoryzacja klucza",
-        "description": "Dodaj ten klucz publiczny w UniFi Network → UniFi Devices → Device Updates and Settings (lewy dolny róg) → Device SSH Settings → SSH Keys, odczekaj aż modem pobierze konfigurację (około minuty) i zatwierdź.\n\n`{public_key}`"
+        "description": "Dodaj ten klucz publiczny w UniFi Network → UniFi Devices → Device Updates and Settings (lewy dolny róg) → Device SSH Settings → SSH Keys, odczekaj aż modem pobierze konfigurację (około minuty) i zatwierdź. Jeśli połączenie się nie uda, popraw poniżej adres lub użytkownika; klucz zostaje ten sam.\n\n`{public_key}`",
+        "data": {
+          "host": "Adres IP modemu",
+          "port": "Port SSH",
+          "username": "Użytkownik Device SSH"
+        }
       },
       "reauth_confirm": {
         "title": "Ponowne połączenie z modemem",
@@ -34,7 +39,7 @@
     },
     "error": {
       "cannot_connect": "Brak połączenia SSH z modemem.",
-      "invalid_auth": "Modem odrzucił klucz. Czy jest dodany w kluczach Device SSH i pobrany przez modem?",
+      "invalid_auth": "Modem odrzucił logowanie: sprawdź nazwę użytkownika Device SSH (wielkość liter ma znaczenie) oraz czy klucz jest w SSH Keys i został już pobrany przez modem.",
       "host_key_changed": "Modem przedstawił inny klucz hosta niż zapisany.",
       "invalid_key": "Nie udało się odczytać klucza prywatnego.",
       "not_a_u5g": "Połączono, ale urządzenie nie odpowiada jak modem UniFi 5G.",

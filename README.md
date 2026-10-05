@@ -1,5 +1,7 @@
 # UniFi 5G SMS for Home Assistant
 
+**English** | [Polski](README.pl.md)
+
 Send and receive SMS in Home Assistant through the cellular modem of a **UniFi U5G**
 (tested on U5G-Max-Outdoor, firmware 7.5.3) adopted by a UniFi gateway. No extra
 hardware, no cloud SMS provider, and it keeps working when the fixed-line internet
@@ -52,7 +54,8 @@ HACS → Integrations → ⋮ → Custom repositories → add this repository as
    IP Address. **Device SSH username**: the Device SSH Settings page above. Leave the
    private key empty and the integration generates one.
 3. Add the shown public key under Device SSH Settings → SSH Keys. Provisioning to the
-   modem takes up to a minute. Submit.
+   modem takes up to a minute. Submit. If the login fails, the same screen lets you
+   fix the address or the username; the key stays the same.
 
 Home Assistant then connects straight to the modem over SSH and keeps the connection
 open. The modem's host key is pinned on first contact; if it changes, the integration
@@ -118,6 +121,8 @@ actions:
   commands, avoid such lengths or end the command with a space or a dot.
 - Messages that arrive between a modem reboot and Home Assistant's reconnect are
   not spooled.
+- **One Home Assistant instance per modem.** The receive spool is shared, so two
+  instances connected to the same modem would each get only part of the messages.
 - A firmware update may change the event script. If the hook cannot be placed, the
   integration logs a warning and keeps sending; receiving stops until it is fixed.
 

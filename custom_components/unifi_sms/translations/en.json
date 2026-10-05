@@ -13,7 +13,12 @@
       },
       "authorize": {
         "title": "Authorise the key",
-        "description": "Add this public key in UniFi Network → UniFi Devices → Device Updates and Settings (bottom left) → Device SSH Settings → SSH Keys, wait until the modem is provisioned (about a minute), then submit.\n\n`{public_key}`"
+        "description": "Add this public key in UniFi Network → UniFi Devices → Device Updates and Settings (bottom left) → Device SSH Settings → SSH Keys, wait until the modem is provisioned (about a minute), then submit. Fix the address or user below if the connection fails; the key stays the same.\n\n`{public_key}`",
+        "data": {
+          "host": "Modem IP address",
+          "port": "SSH port",
+          "username": "Device SSH username"
+        }
       },
       "reauth_confirm": {
         "title": "Reconnect to the modem",
@@ -34,7 +39,7 @@
     },
     "error": {
       "cannot_connect": "Cannot reach the modem over SSH.",
-      "invalid_auth": "The modem rejected the key. Is it added to Device SSH keys and provisioned?",
+      "invalid_auth": "The modem rejected the login: check the Device SSH username (it is case-sensitive) and that the key is in SSH Keys and already provisioned.",
       "host_key_changed": "The modem presented a different host key than the one stored.",
       "invalid_key": "The private key could not be read.",
       "not_a_u5g": "Connected, but the device did not answer like a UniFi 5G modem.",

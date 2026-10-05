@@ -21,7 +21,7 @@ async def test_generated_key_flow(hass, modem):
     public_key = result["description_placeholders"]["public_key"]
     assert public_key.startswith("ssh-ed25519 ")
 
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "UniFi 5G SMS (Test Mobile)"
     assert result["result"].unique_id == IMEI
@@ -49,14 +49,18 @@ async def test_bad_key_text(hass, modem):
 async def test_rejected_key_then_retry(hass, modem):
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
+    key = result["description_placeholders"]["public_key"]
     modem.device_info.side_effect = U5GAuthError("denied")
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {**USER_INPUT, "username": "typo"})
     assert result["step_id"] == "authorize"
     assert result["errors"] == {"base": "invalid_auth"}
+    # The user can fix the name on the same screen; the key does not change.
+    assert result["description_placeholders"]["public_key"] == key
 
     modem.device_info.side_effect = None
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {**USER_INPUT, "username": " admin "})
     assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"]["username"] == "admin"
 
 
 async def test_duplicate_aborts(hass, modem):
