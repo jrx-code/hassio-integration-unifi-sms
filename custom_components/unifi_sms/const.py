@@ -14,6 +14,12 @@ CONF_TRUSTED = "trusted_senders"
 CONF_ONLY_TRUSTED = "only_trusted"
 CONF_DAILY_LIMIT = "daily_limit"
 CONF_ASCII_ONLY = "ascii_only"
+CONF_MODE = "mode"
+
+MODE_SEND_RECEIVE = "send_receive"
+MODE_SEND_ONLY = "send_only"
+# Entities that only make sense when this entry receives (unique_id suffixes).
+RECEIVE_ENTITY_KEYS = ("received", "last_sms", "receive_hook")
 
 DEFAULT_PORT = 22
 DEFAULT_SCAN_INTERVAL = timedelta(seconds=15)

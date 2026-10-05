@@ -15,7 +15,8 @@ async def async_setup_entry(
     entry: UnifiSmsConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    async_add_entities([UnifiSmsReceivedEvent(entry.runtime_data, "received")])
+    if entry.runtime_data.receive:
+        async_add_entities([UnifiSmsReceivedEvent(entry.runtime_data, "received")])
 
 
 class UnifiSmsReceivedEvent(UnifiSmsEntity, EventEntity):

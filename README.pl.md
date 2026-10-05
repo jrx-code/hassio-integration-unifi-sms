@@ -75,6 +75,7 @@ To, dokąd integracja się łączy i czy działa, widać na stronie urządzenia:
 
 | Opcja | |
 |---|---|
+| Tryb | **Wysyłanie i odbieranie** (domyślnie) albo **Tylko wysyłanie**. „Tylko wysyłanie” nie zmienia skryptu zdarzeń na modemie i nie tworzy encji odbioru; przełączenie na ten tryb zdejmuje hook zainstalowany przez ten wpis |
 | Domyślni odbiorcy | numery, na które wysyła encja powiadomień |
 | Zaufani nadawcy | przychodzące SMS-y dostają `trusted: true/false`; sprawdzaj to w automatyzacjach reagujących na komendy SMS |
 | Ignoruj SMS-y od innych nadawców | SMS-y od niezaufanych nadawców nie wywołują zdarzeń i nie zmieniają sensora ostatniego SMS-a |
@@ -87,11 +88,11 @@ To, dokąd integracja się łączy i czy działa, widać na stronie urządzenia:
 | | |
 |---|---|
 | `notify.<nazwa>_sms` | wysyła do domyślnych odbiorców z opcji |
-| `event.<nazwa>_sms_received` | zdarzenie `received` z `from`, `text`, `timestamp`, `iccid`, `trusted` |
-| `sensor.<nazwa>_last_sms` | treść najnowszego SMS-a (stan ucięty do 255 znaków, pełna treść w `text`), przetrwa restart |
+| `event.<nazwa>_sms_received` | (tryb z odbiorem) zdarzenie `received` z `from`, `text`, `timestamp`, `iccid`, `trusted` |
+| `sensor.<nazwa>_last_sms` | (tryb z odbiorem) treść najnowszego SMS-a (stan ucięty do 255 znaków, pełna treść w `text`), przetrwa restart |
 | `sensor.<nazwa>_sms_sent_today`, `..._sms_sent_this_month` | wysłane części SMS, pod rachunek operatora |
-| `binary_sensor.<nazwa>_modem_connection` | połączenie SSH; host, port, użytkownik, odcisk klucza hosta (diagnostyczny) |
-| `sensor.<nazwa>_receive_hook` | `active`, `anchor_missing` lub `failed` (diagnostyczny) |
+| `binary_sensor.<nazwa>_modem_connection` | połączenie SSH; host, port, użytkownik, odcisk klucza hosta, tryb (diagnostyczny) |
+| `sensor.<nazwa>_receive_hook` | (tryb z odbiorem) `active`, `anchor_missing` lub `failed` (diagnostyczny) |
 | `sensor.<nazwa>_active_sim` | operator aktywnej karty SIM (diagnostyczny) |
 | `unifi_sms.send` | `to` (numer lub lista), `message`; zwraca liczbę części |
 | zdarzenie `unifi_sms_received` | te same dane co encja zdarzeń, do automatyzacji |
@@ -125,8 +126,10 @@ actions:
   komendach SMS unikaj takich długości albo kończ komendę spacją lub kropką.
 - Wiadomości, które przyjdą między restartem modemu a ponownym połączeniem Home
   Assistant, nie trafiają do kolejki.
-- **Jedna instancja Home Assistant na modem.** Kolejka odbioru jest wspólna, więc dwie
-  instancje połączone z tym samym modemem dostawałyby po części wiadomości.
+- **Jedna odbierająca instancja Home Assistant na modem.** Kolejka odbioru jest
+  wspólna, więc dwie odbierające instancje dostawałyby po części wiadomości. Kolejne
+  instancje mogą korzystać z tego samego modemu w trybie **Tylko wysyłanie** (każda
+  z własnym kluczem w UniFi).
 - Aktualizacja firmware może zmienić skrypt zdarzeń. Jeśli hooka nie da się wpiąć,
   integracja zapisuje ostrzeżenie w logu i dalej wysyła; odbiór stoi do czasu
   poprawki.

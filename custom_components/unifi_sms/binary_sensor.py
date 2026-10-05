@@ -47,5 +47,6 @@ class UnifiSmsConnection(UnifiSmsEntity, BinarySensorEntity):
             "port": data[CONF_PORT],
             "username": data[CONF_USERNAME],
             "host_key_fingerprint": host_key,
+            "mode": "send_receive" if self.coordinator.receive else "send_only",
             "receive_hook": self.coordinator.modem.hook_state,
         }

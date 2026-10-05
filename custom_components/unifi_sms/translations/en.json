@@ -57,6 +57,7 @@
       "init": {
         "title": "SMS options",
         "data": {
+          "mode": "Mode",
           "recipients": "Default recipients for the notify entity",
           "iccid": "Send from SIM (ICCID)",
           "trusted_senders": "Trusted senders",
@@ -65,6 +66,7 @@
           "ascii_only": "Send without diacritics"
         },
         "data_description": {
+          "mode": "Only one Home Assistant instance per modem may receive. Send only never touches the modem's event script; switching to it removes the receive hook this entry installed.",
           "recipients": "E.164 numbers separated by commas, e.g. +48123456789.",
           "iccid": "Leave empty to use the active SIM.",
           "trusted_senders": "E.164 numbers separated by commas. Incoming SMS get the attribute `trusted`; use it in automations that act on SMS commands.",
@@ -160,6 +162,9 @@
           },
           "receive_hook": {
             "name": "Receive hook"
+          },
+          "mode": {
+            "name": "Mode"
           }
         }
       }
@@ -196,6 +201,14 @@
           "name": "Modem",
           "description": "Needed only with more than one modem."
         }
+      }
+    }
+  },
+  "selector": {
+    "mode": {
+      "options": {
+        "send_receive": "Send and receive",
+        "send_only": "Send only"
       }
     }
   }

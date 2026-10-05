@@ -30,7 +30,8 @@ def modem():
     instance.close = AsyncMock()
     instance.server_host_key = MagicMock(return_value=HOST_KEY)
     with (
-        patch("custom_components.unifi_sms.U5GModem", return_value=instance),
+        patch("custom_components.unifi_sms.U5GModem", return_value=instance) as factory,
         patch("custom_components.unifi_sms.config_flow.U5GModem", return_value=instance),
     ):
+        instance.factory = factory
         yield instance

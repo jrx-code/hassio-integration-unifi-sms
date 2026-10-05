@@ -57,6 +57,7 @@
       "init": {
         "title": "Opcje SMS",
         "data": {
+          "mode": "Tryb",
           "recipients": "Domyślni odbiorcy encji powiadomień",
           "iccid": "Wysyłaj z karty SIM (ICCID)",
           "trusted_senders": "Zaufani nadawcy",
@@ -65,6 +66,7 @@
           "ascii_only": "Wysyłaj bez polskich znaków"
         },
         "data_description": {
+          "mode": "Odbierać może tylko jedna instancja Home Assistant na modem. Tryb „tylko wysyłanie” nie zmienia skryptu zdarzeń na modemie; przełączenie na niego zdejmuje hook odbioru zainstalowany przez ten wpis.",
           "recipients": "Numery w formacie E.164 oddzielone przecinkami, np. +48123456789.",
           "iccid": "Puste = aktywna karta SIM.",
           "trusted_senders": "Numery E.164 oddzielone przecinkami. Przychodzące SMS-y dostają atrybut `trusted`; używaj go w automatyzacjach reagujących na komendy SMS.",
@@ -98,6 +100,9 @@
           },
           "receive_hook": {
             "name": "Hook odbioru"
+          },
+          "mode": {
+            "name": "Tryb"
           }
         }
       }
@@ -196,6 +201,14 @@
           "name": "Modem",
           "description": "Potrzebne tylko przy więcej niż jednym modemie."
         }
+      }
+    }
+  },
+  "selector": {
+    "mode": {
+      "options": {
+        "send_receive": "Wysyłanie i odbieranie",
+        "send_only": "Tylko wysyłanie"
       }
     }
   }

@@ -290,3 +290,66 @@ async def test_diagnostics_redact(hass, modem):
     assert diag["modem"]["sim"]["iccid"] == REDACTED
     assert diag["modem"]["system"]["model"] == "U5G-Max-Outdoor"
     assert "+48111111111" not in str(diag)
+
+
+RECEIVE_ENTITIES = (
+    "event.unifi_5g_sms_test_mobile_sms_received",
+    "sensor.unifi_5g_sms_test_mobile_last_sms",
+    "sensor.unifi_5g_sms_test_mobile_receive_hook",
+)
+
+
+async def test_send_only_mode(hass, modem):
+    await _setup(hass, {"mode": "send_only"})
+    assert modem.factory.call_args.kwargs["install_hook"] is False
+    await _tick(hass)
+    modem.read_spool.assert_not_awaited()
+    for entity_id in RECEIVE_ENTITIES:
+        assert hass.states.get(entity_id) is None
+    assert hass.states.get("binary_sensor.unifi_5g_sms_test_mobile_modem_connection").attributes["mode"] == "send_only"
+    await _send(hass, "still sends")
+    modem.send_part.assert_awaited_once()
+
+
+async def test_default_mode_receives(hass, modem):
+    await _setup(hass)
+    assert modem.factory.call_args.kwargs["install_hook"] is True
+    for entity_id in RECEIVE_ENTITIES:
+        assert hass.states.get(entity_id) is not None
+
+
+async def test_switch_to_send_only_removes_hook_and_entities(hass, modem):
+    from homeassistant.helpers import entity_registry as er
+
+    entry = await _setup(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(result["flow_id"], {"mode": "send_only"})
+    await hass.async_block_till_done()
+    modem.remove_hook.assert_awaited_once()
+    registry = er.async_get(hass)
+    for entity_id in RECEIVE_ENTITIES:
+        assert registry.async_get(entity_id) is None
+    assert entry.state is ConfigEntryState.LOADED
+
+    # And back: the hook is reinstalled with the new connection, entities return.
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(result["flow_id"], {"mode": "send_receive"})
+    await hass.async_block_till_done()
+    assert modem.factory.call_args.kwargs["install_hook"] is True
+    assert hass.states.get("sensor.unifi_5g_sms_test_mobile_last_sms") is not None
+    modem.remove_hook.assert_awaited_once()
+
+
+async def test_other_option_change_keeps_hook(hass, modem):
+    entry = await _setup(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(result["flow_id"], {"daily_limit": 5})
+    await hass.async_block_till_done()
+    modem.remove_hook.assert_not_awaited()
+
+
+async def test_removing_send_only_entry_keeps_hook(hass, modem):
+    entry = await _setup(hass, {"mode": "send_only"})
+    await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+    modem.remove_hook.assert_not_awaited()

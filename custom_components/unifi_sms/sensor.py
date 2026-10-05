@@ -23,15 +23,18 @@ async def async_setup_entry(
     entry: UnifiSmsConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    async_add_entities(
-        [
-            UnifiSmsSimSensor(entry.runtime_data, "active_sim"),
-            UnifiSmsLastMessageSensor(entry.runtime_data, "last_sms"),
-            UnifiSmsHookSensor(entry.runtime_data, "receive_hook"),
-            UnifiSmsSentSensor(entry.runtime_data, "sent_today", lambda c: c.sent_today),
-            UnifiSmsSentSensor(entry.runtime_data, "sent_month", lambda c: c.sent_month),
+    coordinator = entry.runtime_data
+    entities: list[SensorEntity] = [
+        UnifiSmsSimSensor(coordinator, "active_sim"),
+        UnifiSmsSentSensor(coordinator, "sent_today", lambda c: c.sent_today),
+        UnifiSmsSentSensor(coordinator, "sent_month", lambda c: c.sent_month),
+    ]
+    if coordinator.receive:
+        entities += [
+            UnifiSmsLastMessageSensor(coordinator, "last_sms"),
+            UnifiSmsHookSensor(coordinator, "receive_hook"),
         ]
-    )
+    async_add_entities(entities)
 
 
 class UnifiSmsSimSensor(UnifiSmsEntity, SensorEntity):

@@ -72,6 +72,7 @@ hook* sensor. **Download diagnostics** gives the same with keys and numbers reda
 
 | Option | |
 |---|---|
+| Mode | **Send and receive** (default) or **Send only**. Send only never touches the modem's event script and creates no receive entities; switching to it removes the hook this entry installed |
 | Default recipients | numbers the notify entity sends to |
 | Trusted senders | incoming SMS get `trusted: true/false`; check it in automations that act on SMS commands |
 | Ignore SMS from other senders | untrusted SMS fire no event and do not update the last SMS sensor |
@@ -84,11 +85,11 @@ hook* sensor. **Download diagnostics** gives the same with keys and numbers reda
 | | |
 |---|---|
 | `notify.<name>_sms` | sends to the default recipients from the options |
-| `event.<name>_sms_received` | fires `received` with `from`, `text`, `timestamp`, `iccid`, `trusted` |
-| `sensor.<name>_last_sms` | text of the newest SMS (state cut at 255 characters, full text in `text`), kept across restarts |
+| `event.<name>_sms_received` | (receive mode) fires `received` with `from`, `text`, `timestamp`, `iccid`, `trusted` |
+| `sensor.<name>_last_sms` | (receive mode) text of the newest SMS (state cut at 255 characters, full text in `text`), kept across restarts |
 | `sensor.<name>_sms_sent_today`, `..._sms_sent_this_month` | SMS parts sent, for the operator's bill |
-| `binary_sensor.<name>_modem_connection` | SSH link up; host, port, user, host key fingerprint (diagnostic) |
-| `sensor.<name>_receive_hook` | `active`, `anchor_missing` or `failed` (diagnostic) |
+| `binary_sensor.<name>_modem_connection` | SSH link up; host, port, user, host key fingerprint, mode (diagnostic) |
+| `sensor.<name>_receive_hook` | (receive mode) `active`, `anchor_missing` or `failed` (diagnostic) |
 | `sensor.<name>_active_sim` | operator of the active SIM (diagnostic) |
 | `unifi_sms.send` | `to` (number or list), `message`; returns the part count |
 | event `unifi_sms_received` | the same data as the event entity, for automations |
@@ -121,8 +122,10 @@ actions:
   commands, avoid such lengths or end the command with a space or a dot.
 - Messages that arrive between a modem reboot and Home Assistant's reconnect are
   not spooled.
-- **One Home Assistant instance per modem.** The receive spool is shared, so two
-  instances connected to the same modem would each get only part of the messages.
+- **One receiving Home Assistant instance per modem.** The receive spool is shared,
+  so two receiving instances would each get only part of the messages. Any number of
+  further instances can use the same modem in **Send only** mode (each with its own
+  key in UniFi).
 - A firmware update may change the event script. If the hook cannot be placed, the
   integration logs a warning and keeps sending; receiving stops until it is fixed.
 

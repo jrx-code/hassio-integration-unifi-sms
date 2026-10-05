@@ -15,6 +15,9 @@ from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -34,12 +37,15 @@ from .const import (
     CONF_DAILY_LIMIT,
     CONF_HOST_KEY,
     CONF_ICCID,
+    CONF_MODE,
     CONF_ONLY_TRUSTED,
     CONF_PRIVATE_KEY,
     CONF_RECIPIENTS,
     CONF_TRUSTED,
     DEFAULT_PORT,
     DOMAIN,
+    MODE_SEND_ONLY,
+    MODE_SEND_RECEIVE,
 )
 from .coordinator import UnifiSmsConfigEntry
 from .sms import parse_recipients
@@ -245,6 +251,7 @@ class UnifiSmsOptionsFlow(OptionsFlow):
             if not errors:
                 return self.async_create_entry(
                     data={
+                        CONF_MODE: user_input.get(CONF_MODE, MODE_SEND_RECEIVE),
                         CONF_RECIPIENTS: ", ".join(numbers[CONF_RECIPIENTS]),
                         CONF_ICCID: (user_input.get(CONF_ICCID) or "").strip(),
                         CONF_TRUSTED: ", ".join(numbers[CONF_TRUSTED]),
@@ -255,6 +262,13 @@ class UnifiSmsOptionsFlow(OptionsFlow):
                 )
         schema = vol.Schema(
             {
+                vol.Required(CONF_MODE, default=MODE_SEND_RECEIVE): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[MODE_SEND_RECEIVE, MODE_SEND_ONLY],
+                        translation_key=CONF_MODE,
+                        mode=SelectSelectorMode.LIST,
+                    )
+                ),
                 vol.Optional(CONF_RECIPIENTS): str,
                 vol.Optional(CONF_TRUSTED): str,
                 vol.Optional(CONF_ONLY_TRUSTED, default=False): BooleanSelector(),

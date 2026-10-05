@@ -18,11 +18,13 @@ from .const import (
     CONF_ASCII_ONLY,
     CONF_DAILY_LIMIT,
     CONF_ICCID,
+    CONF_MODE,
     CONF_ONLY_TRUSTED,
     CONF_TRUSTED,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     EVENT_SMS_RECEIVED,
+    MODE_SEND_RECEIVE,
     SEEN_IDS_LIMIT,
 )
 from .sms import is_trusted, parse_recipients, split_text, to_ascii
@@ -61,6 +63,8 @@ class UnifiSmsCoordinator(DataUpdateCoordinator[UnifiSmsData]):
         self._sent: dict = {}
         self._sim: dict = {}
         self._sim_age = SIM_REFRESH
+        # Fixed for the lifetime of the entry; a mode change reloads it.
+        self.receive = entry.options.get(CONF_MODE, MODE_SEND_RECEIVE) == MODE_SEND_RECEIVE
 
     @property
     def iccid(self) -> str | None:
@@ -144,7 +148,7 @@ class UnifiSmsCoordinator(DataUpdateCoordinator[UnifiSmsData]):
                 self._sim_age = timedelta()
             else:
                 self._sim_age += self.update_interval or DEFAULT_SCAN_INTERVAL
-            spooled = await self.modem.read_spool()
+            spooled = await self.modem.read_spool() if self.receive else []
         except U5GError as err:
             raise UpdateFailed(str(err)) from err
 
