@@ -4,21 +4,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-SMS for Home Assistant through a UniFi U5G modem. `u5g_sms/` is a stdlib-only client
-and CLI that SSHes to the modem (gateway as jump host) and calls `uiwwand` over ubus.
-The HA integration under `custom_components/` does not exist yet. Firmware findings:
-`docs/u5g-sms-internals.md`; keep it current when behaviour is verified.
+Home Assistant integration `unifi_sms`: SMS through a UniFi U5G modem over SSH
+(asyncssh, pinned to the version HA core uses). Firmware findings live in
+`docs/u5g-sms-internals.md`; keep it current when behaviour is verified on a device.
+
+```
+custom_components/unifi_sms/
+├── api.py          # U5GModem: one asyncssh connection, ubus calls, hook install on connect
+├── hook.py         # shell scripts for the receive hook + spool parsing (pure)
+├── sms.py          # text splitting (64-byte limit), E.164 parsing, ubus command (pure)
+├── coordinator.py  # 15 s poll: spool -> events, SIM state every 5 min, seen ids in Store
+├── config_flow.py  # key generation, host key pinning, reauth, options (recipients, ICCID)
+└── event.py, notify.py, sensor.py, services.yaml
+```
 
 ## Commands
 
-- Tests: `uvx pytest -q` (no network, no SSH)
+- Tests: `.venv/bin/pytest -q` (venv: Python 3.14 + pytest-homeassistant-custom-component)
 - Lint: `uvx ruff check .`
-- Read-only live check: `U5G_HOST=... U5G_USER=... U5G_JUMP=... python -m u5g_sms sim`
+- `tests/test_hook.py` runs the real install/uninstall scripts against a stand-in event script.
 
 ## Rules
 
-- `send` costs money and reaches a real phone. Use `--dry-run` unless a send was asked for.
-- Public on GitHub: no ICCIDs, phone numbers, device SSH usernames or internal
+- Sending reaches a real phone and costs money. Do not send unless asked.
+- Test on the dev HA instance first, production only through HACS releases.
+- The hook edits a firmware script on the modem. Any change to `hook.py` must keep
+  uninstall restoring the original file byte for byte; verify on a device.
+- Public on GitHub: no ICCIDs, IMEIs, phone numbers, device SSH usernames or internal
   hostnames in code, docs, tests or commits. Placeholders only.
 - Remotes: `origin` = Forgejo, `github` = public mirror. Commit email is the GitHub
   noreply address (set per repo).

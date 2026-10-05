@@ -1,0 +1,18 @@
+send:
+  fields:
+    to:
+      required: true
+      example: "+48123456789"
+      selector:
+        text:
+    message:
+      required: true
+      example: "Garage door open for 10 minutes"
+      selector:
+        text:
+          multiline: true
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: unifi_sms

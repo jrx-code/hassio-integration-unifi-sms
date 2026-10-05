@@ -7,12 +7,30 @@ on:
   workflow_dispatch:
 
 # GitHub only: the Forgejo runner also picks up .github/workflows when a repo has
-# no .forgejo/workflows. hassfest/HACS jobs come with custom_components/.
+# no .forgejo/workflows, and the hassfest/HACS actions do not run there.
 
 permissions:
   contents: read
 
 jobs:
+  hassfest:
+    name: Hassfest
+    if: github.server_url == 'https://github.com'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS
+    if: github.server_url == 'https://github.com'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+
   lint:
     name: Ruff
     if: github.server_url == 'https://github.com'
@@ -21,7 +39,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.14"
       - run: pip install ruff
       - run: ruff check .
 
@@ -33,6 +51,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
-      - run: pip install pytest
+          python-version: "3.14"
+      - run: pip install pytest pytest-homeassistant-custom-component asyncssh==2.21.0
       - run: pytest -q --tb=short

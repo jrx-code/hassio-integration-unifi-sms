@@ -1,0 +1,130 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to the UniFi 5G modem",
+        "description": "The modem must accept Device SSH (UniFi Network → Settings → System → Device SSH Authentication). Leave the private key empty to generate a new one.",
+        "data": {
+          "host": "Modem IP address",
+          "port": "SSH port",
+          "username": "Device SSH username",
+          "private_key": "Private key (OpenSSH format, optional)"
+        }
+      },
+      "authorize": {
+        "title": "Authorise the key",
+        "description": "Add this public key in UniFi Network → Settings → System → Device SSH Authentication → SSH keys, wait until the modem is provisioned (about a minute), then submit.\n\n`{public_key}`"
+      },
+      "reauth_confirm": {
+        "title": "Reconnect to the modem",
+        "description": "The modem rejected the connection. Make sure this public key is still listed in UniFi Network Device SSH keys:\n\n`{public_key}`\n\nTick the box only if the modem was replaced or reset and its host key changed on purpose.",
+        "data": {
+          "accept_new_host_key": "Accept a new host key"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot reach the modem over SSH.",
+      "invalid_auth": "The modem rejected the key. Is it added to Device SSH keys and provisioned?",
+      "host_key_changed": "The modem presented a different host key than the one stored.",
+      "invalid_key": "The private key could not be read.",
+      "not_a_u5g": "Connected, but the device did not answer like a UniFi 5G modem.",
+      "unknown": "Unexpected error, see the log."
+    },
+    "abort": {
+      "already_configured": "This modem is already configured.",
+      "reauth_successful": "Reconnected.",
+      "wrong_device": "This is a different modem than the configured one."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SMS options",
+        "data": {
+          "recipients": "Default recipients for the notify entity",
+          "iccid": "Send from SIM (ICCID)"
+        },
+        "data_description": {
+          "recipients": "E.164 numbers separated by commas, e.g. +48123456789.",
+          "iccid": "Leave empty to use the active SIM."
+        }
+      }
+    },
+    "error": {
+      "invalid_number": "Use E.164 numbers with a country code, e.g. +48123456789."
+    }
+  },
+  "entity": {
+    "event": {
+      "received": {
+        "name": "SMS received",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "received": "Received"
+            }
+          }
+        }
+      }
+    },
+    "notify": {
+      "sms": {
+        "name": "SMS"
+      }
+    },
+    "sensor": {
+      "active_sim": {
+        "name": "Active SIM"
+      },
+      "last_sms": {
+        "name": "Last SMS",
+        "state_attributes": {
+          "from": {
+            "name": "From"
+          },
+          "text": {
+            "name": "Text"
+          },
+          "timestamp": {
+            "name": "Timestamp"
+          },
+          "received": {
+            "name": "Received"
+          },
+          "iccid": {
+            "name": "SIM (ICCID)"
+          }
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "no_recipients": {
+      "message": "No recipients. Set default recipients in the integration options or pass `to`."
+    },
+    "pick_entry": {
+      "message": "Pass config_entry_id: there is not exactly one loaded UniFi 5G SMS entry."
+    }
+  },
+  "services": {
+    "send": {
+      "name": "Send SMS",
+      "description": "Send an SMS through the modem. Texts longer than 64 bytes go out as several messages.",
+      "fields": {
+        "to": {
+          "name": "To",
+          "description": "E.164 number or a list of numbers."
+        },
+        "message": {
+          "name": "Message",
+          "description": "Text to send."
+        },
+        "config_entry_id": {
+          "name": "Modem",
+          "description": "Needed only with more than one modem."
+        }
+      }
+    }
+  }
+}

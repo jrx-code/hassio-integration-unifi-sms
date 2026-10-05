@@ -61,16 +61,26 @@ septet is treated as padding. Workaround for SMS commands: avoid lengths of
 
 ### `get-sms` is not a mailbox
 
-The list empties within minutes without a daemon restart (same PID before and
-after). Use the receive hook or the syslog for anything durable.
+Messages stay in the list only for seconds, without a daemon restart (same PID
+before and after). Two SMS that reached the modem were never seen by a client
+polling `get-sms` every 15 seconds; one of them was already gone 26 seconds after
+arrival. The exact retention was not measured. Do not poll it for receiving.
 
 ### Receive hook
 
 For every incoming SMS `uiwwand` runs `/etc/mbbcfg/uiwwand_event.sh sms` with a
 JSON object on stdin (`id`, `from`, `text`, `timestamp`, `iccid`). The stock script
 raises a UniFi alert `EVT_MBB_SMS` and logs `Received SMS <from>: <text>`.
-The file is on a writable partition. Whether edits survive a reboot or a firmware
-update was not tested yet.
+
+The root filesystem is an overlay whose upper layer is a tmpfs, so edits to the
+script work immediately but are gone after a reboot. The integration therefore adds
+its line right after `sms="$(cat -)"` on every new SSH connection (idempotent, marker
+`# unifi_sms hook`) and removes it, restoring the original file byte for byte, when
+the integration is deleted. The hook pipes `$sms` to a helper that writes one JSON
+file per message under `/tmp/unifi_sms` (written as `.tmp`, then renamed).
+
+Measured on the tested unit: an SMS logged by the modem at 13:38:57 fired the Home
+Assistant event at 13:39:05, with Polish diacritics intact.
 
 ### eSIM profiles
 

@@ -1,0 +1,12 @@
+{
+  "domain": "unifi_sms",
+  "name": "UniFi 5G SMS",
+  "codeowners": ["@jrx-code"],
+  "config_flow": true,
+  "documentation": "https://github.com/jrx-code/hassio-integration-unifi-sms",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/jrx-code/hassio-integration-unifi-sms/issues",
+  "requirements": ["asyncssh==2.21.0"],
+  "version": "0.1.0"
+}
