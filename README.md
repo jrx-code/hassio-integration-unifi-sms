@@ -20,6 +20,16 @@ The integration keeps an SSH connection to the modem and:
 
 Details and firmware quirks: [docs/u5g-sms-internals.md](docs/u5g-sms-internals.md).
 
+## Supported devices
+
+| Device | Status |
+|---|---|
+| UniFi 5G Max Outdoor (U5G-Max-Outdoor) | **tested**, firmware 7.5.3 |
+| UniFi 5G Max (indoor), UniFi 5G Backup (U5G) | expected to work: same `uiwwand` daemon and ubus methods, per a [public write-up](https://gist.github.com/keyz182/96a901d5ba1bf5f4b9701f5eba8729ad); not tested here |
+| UniFi LTE Backup Pro (U-LTE-Pro) | not supported: no `uiwwand`. SMS is reachable on the inner Sierra Legato module through a second SSH hop and `cm sms ...` ([example](https://github.com/CppBunny/unifi_sms_gateway)), which would need its own backend |
+| UniFi Mobile Router (UMR family) | not supported: no known way to read or send SMS; community requests for the feature have no Ubiquiti answer ([thread](https://community.ui.com/questions/UMR-Industrial-SMS/68d10331-f138-4e4e-90ef-e864eb91a639)) |
+| Dream Router 5G Max (UDR-5G-Max) | unknown: built-in modem, no public information on SMS access |
+
 ## Requirements
 
 - A U5G adopted in UniFi Network, with an active SIM that has SMS service.
