@@ -65,3 +65,22 @@ def test_ubus_command_is_shell_safe():
         "method": "send-sms",
         "params": {"to": "+48123456789", "text": "it's \"quoted\" $HOME"},
     }
+
+
+def test_to_ascii():
+    from custom_components.unifi_sms.sms import to_ascii
+
+    assert to_ascii("Zażółć GĘŚLĄ JAŹŃ, Łódź") == "Zazolc GESLA JAZN, Lodz"
+    assert to_ascii("„a” ‘b’ – c — d…") == '"a" \'b\' - c - d...'
+    assert to_ascii("emoji 🙂") == "emoji ?"
+
+
+def test_is_trusted():
+    from custom_components.unifi_sms.sms import is_trusted
+
+    trusted = ["+48111111111"]
+    assert is_trusted("+48111111111", trusted)
+    assert is_trusted("0048 111 111 111", trusted)
+    assert not is_trusted("+48222222222", trusted)
+    assert not is_trusted("Vikingowie", trusted)
+    assert not is_trusted("+48111111111", [])

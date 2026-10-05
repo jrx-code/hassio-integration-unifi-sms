@@ -1,16 +1,17 @@
-"""Sensors: operator of the active SIM, last received SMS."""
+"""Sensors: active SIM, last received SMS, receive hook state, sent counters."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .coordinator import UnifiSmsConfigEntry
+from . import hook
+from .coordinator import UnifiSmsConfigEntry, UnifiSmsCoordinator
 from .entity import UnifiSmsEntity
 
 # Home Assistant rejects states longer than 255 characters; the full text stays in `text`.
@@ -26,6 +27,9 @@ async def async_setup_entry(
         [
             UnifiSmsSimSensor(entry.runtime_data, "active_sim"),
             UnifiSmsLastMessageSensor(entry.runtime_data, "last_sms"),
+            UnifiSmsHookSensor(entry.runtime_data, "receive_hook"),
+            UnifiSmsSentSensor(entry.runtime_data, "sent_today", lambda c: c.sent_today),
+            UnifiSmsSentSensor(entry.runtime_data, "sent_month", lambda c: c.sent_month),
         ]
     )
 
@@ -65,6 +69,7 @@ class UnifiSmsLastMessageSensor(UnifiSmsEntity, SensorEntity, RestoreEntity):
                 "text": last.attributes.get("text", last.state),
                 "timestamp": last.attributes.get("timestamp"),
                 "iccid": last.attributes.get("iccid"),
+                "trusted": last.attributes.get("trusted"),
             }
 
     @callback
@@ -92,4 +97,39 @@ class UnifiSmsLastMessageSensor(UnifiSmsEntity, SensorEntity, RestoreEntity):
             "timestamp": timestamp,
             "received": received,
             "iccid": self._message.get("iccid"),
+            "trusted": self._message.get("trusted"),
         }
+
+
+class UnifiSmsHookSensor(UnifiSmsEntity, SensorEntity):
+    """Whether incoming SMS reach Home Assistant (the hook on the modem is in place)."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["active", "anchor_missing", "failed"]
+
+    @property
+    def native_value(self) -> str | None:
+        state = self.coordinator.modem.hook_state
+        if state is None:
+            return None
+        if state in (hook.RESULT_INSTALLED, hook.RESULT_PRESENT):
+            return "active"
+        if state == hook.RESULT_NO_ANCHOR:
+            return "anchor_missing"
+        return "failed"
+
+
+class UnifiSmsSentSensor(UnifiSmsEntity, SensorEntity):
+    """SMS parts sent today / this month (what the operator bills)."""
+
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_native_unit_of_measurement = "SMS"
+
+    def __init__(self, coordinator: UnifiSmsCoordinator, key: str, value) -> None:
+        super().__init__(coordinator, key)
+        self._value = value
+
+    @property
+    def native_value(self) -> int:
+        return self._value(self.coordinator)

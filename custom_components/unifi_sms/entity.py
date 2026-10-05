@@ -20,6 +20,7 @@ class UnifiSmsEntity(CoordinatorEntity[UnifiSmsCoordinator]):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.unique_id or entry.entry_id)},
             manufacturer="Ubiquiti",
-            model="UniFi 5G modem",
+            model=coordinator.system.get("model") or "UniFi 5G modem",
+            sw_version=coordinator.system.get("version"),
             name=entry.title,
         )

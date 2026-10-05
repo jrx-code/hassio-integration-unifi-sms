@@ -1,0 +1,197 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Połączenie z modemem UniFi 5G",
+        "description": "Home Assistant łączy się z modemem bezpośrednio przez SSH, więc potrzebuje adresu modemu i loginu Device SSH.\n\n**Adres IP modemu**: UniFi Network → UniFi Devices → Twój modem 5G → Overview → IP Address. Przy bramie UniFi modem zwykle jest w sieci wewnętrznej, do której ruch z LAN-u jest routowany.\n\n**Użytkownik Device SSH**: UniFi Network → UniFi Devices → Device Updates and Settings (lewy dolny róg) → Device SSH Settings → Device SSH Authentication (Settings → System → Advanced → Device Authentication w UniFi Network starszym niż 9.2.87). Jeśli jest wyłączone, włącz je tam.\n\nZostaw klucz prywatny pusty, a Home Assistant wygeneruje własny; w następnym kroku pokaże klucz publiczny do dodania w UniFi.",
+        "data": {
+          "host": "Adres IP modemu",
+          "port": "Port SSH",
+          "username": "Użytkownik Device SSH",
+          "private_key": "Klucz prywatny (format OpenSSH, opcjonalnie)"
+        }
+      },
+      "authorize": {
+        "title": "Autoryzacja klucza",
+        "description": "Dodaj ten klucz publiczny w UniFi Network → UniFi Devices → Device Updates and Settings (lewy dolny róg) → Device SSH Settings → SSH Keys, odczekaj aż modem pobierze konfigurację (około minuty) i zatwierdź.\n\n`{public_key}`"
+      },
+      "reauth_confirm": {
+        "title": "Ponowne połączenie z modemem",
+        "description": "Modem odrzucił połączenie. Sprawdź, czy ten klucz publiczny nadal jest w UniFi Network → UniFi Devices → Device Updates and Settings (lewy dolny róg) → Device SSH Settings → SSH Keys:\n\n`{public_key}`\n\nZaznacz pole tylko wtedy, gdy modem został wymieniony lub zresetowany i jego klucz hosta zmienił się celowo.",
+        "data": {
+          "accept_new_host_key": "Zaakceptuj nowy klucz hosta"
+        }
+      },
+      "reconfigure": {
+        "title": "Zmiana połączenia z modemem",
+        "description": "Użyj, gdy zmienił się adres IP modemu lub użytkownik Device SSH. Klucz zostaje ten sam i musi pozostać w UniFi Network → UniFi Devices → Device Updates and Settings (lewy dolny róg) → Device SSH Settings → SSH Keys:\n\n`{public_key}`",
+        "data": {
+          "host": "Adres IP modemu",
+          "port": "Port SSH",
+          "username": "Użytkownik Device SSH"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Brak połączenia SSH z modemem.",
+      "invalid_auth": "Modem odrzucił klucz. Czy jest dodany w kluczach Device SSH i pobrany przez modem?",
+      "host_key_changed": "Modem przedstawił inny klucz hosta niż zapisany.",
+      "invalid_key": "Nie udało się odczytać klucza prywatnego.",
+      "not_a_u5g": "Połączono, ale urządzenie nie odpowiada jak modem UniFi 5G.",
+      "unknown": "Nieoczekiwany błąd, sprawdź log."
+    },
+    "abort": {
+      "already_configured": "Ten modem jest już skonfigurowany.",
+      "reauth_successful": "Połączono ponownie.",
+      "wrong_device": "To inny modem niż skonfigurowany.",
+      "reconfigure_successful": "Zmieniono ustawienia połączenia."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje SMS",
+        "data": {
+          "recipients": "Domyślni odbiorcy encji powiadomień",
+          "iccid": "Wysyłaj z karty SIM (ICCID)",
+          "trusted_senders": "Zaufani nadawcy",
+          "only_trusted": "Ignoruj SMS-y od innych nadawców",
+          "daily_limit": "Dzienny limit SMS",
+          "ascii_only": "Wysyłaj bez polskich znaków"
+        },
+        "data_description": {
+          "recipients": "Numery w formacie E.164 oddzielone przecinkami, np. +48123456789.",
+          "iccid": "Puste = aktywna karta SIM.",
+          "trusted_senders": "Numery E.164 oddzielone przecinkami. Przychodzące SMS-y dostają atrybut `trusted`; używaj go w automatyzacjach reagujących na komendy SMS.",
+          "only_trusted": "SMS-y od niezaufanych nadawców nie wywołują zdarzeń i nie zmieniają sensora ostatniego SMS-a.",
+          "daily_limit": "Maksymalna liczba części SMS wysłanych dziennie, 0 = bez limitu. Każda 64-bajtowa część liczy się jako jeden SMS.",
+          "ascii_only": "Zamienia zażółć na zazolc. Każdy znak zajmuje wtedy jeden bajt, więc w jednym SMS-ie mieści się więcej tekstu."
+        }
+      }
+    },
+    "error": {
+      "invalid_number": "Podaj numery E.164 z kodem kraju, np. +48123456789.",
+      "trusted_required": "Dodaj co najmniej jednego zaufanego nadawcę albo wyłącz ignorowanie pozostałych."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connection": {
+        "name": "Połączenie z modemem",
+        "state_attributes": {
+          "host": {
+            "name": "Host"
+          },
+          "port": {
+            "name": "Port"
+          },
+          "username": {
+            "name": "Użytkownik"
+          },
+          "host_key_fingerprint": {
+            "name": "Odcisk klucza hosta"
+          },
+          "receive_hook": {
+            "name": "Hook odbioru"
+          }
+        }
+      }
+    },
+    "event": {
+      "received": {
+        "name": "Odebrany SMS",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "received": "Odebrano"
+            }
+          },
+          "trusted": {
+            "name": "Zaufany nadawca"
+          }
+        }
+      }
+    },
+    "notify": {
+      "sms": {
+        "name": "SMS"
+      }
+    },
+    "sensor": {
+      "active_sim": {
+        "name": "Aktywna karta SIM"
+      },
+      "last_sms": {
+        "name": "Ostatni SMS",
+        "state_attributes": {
+          "from": {
+            "name": "Od"
+          },
+          "text": {
+            "name": "Treść"
+          },
+          "timestamp": {
+            "name": "Znacznik czasu"
+          },
+          "received": {
+            "name": "Odebrano"
+          },
+          "iccid": {
+            "name": "SIM (ICCID)"
+          },
+          "trusted": {
+            "name": "Zaufany nadawca"
+          }
+        }
+      },
+      "receive_hook": {
+        "name": "Hook odbioru",
+        "state": {
+          "active": "Aktywny",
+          "anchor_missing": "Nie da się zainstalować (zmieniony firmware)",
+          "failed": "Błąd"
+        }
+      },
+      "sent_today": {
+        "name": "SMS wysłane dziś"
+      },
+      "sent_month": {
+        "name": "SMS wysłane w tym miesiącu"
+      }
+    }
+  },
+  "exceptions": {
+    "no_recipients": {
+      "message": "Brak odbiorców. Ustaw domyślnych odbiorców w opcjach integracji albo podaj `to`."
+    },
+    "pick_entry": {
+      "message": "Podaj config_entry_id: nie ma dokładnie jednego załadowanego wpisu UniFi 5G SMS."
+    },
+    "daily_limit": {
+      "message": "Osiągnięto dzienny limit SMS: dziś wysłano {sent} z {limit}, ta wiadomość potrzebuje {needed}."
+    },
+    "empty_message": {
+      "message": "Wiadomość jest pusta."
+    }
+  },
+  "services": {
+    "send": {
+      "name": "Wyślij SMS",
+      "description": "Wysyła SMS przez modem. Teksty dłuższe niż 64 bajty idą jako kilka wiadomości.",
+      "fields": {
+        "to": {
+          "name": "Do",
+          "description": "Numer E.164 albo lista numerów."
+        },
+        "message": {
+          "name": "Treść",
+          "description": "Tekst do wysłania."
+        },
+        "config_entry_id": {
+          "name": "Modem",
+          "description": "Potrzebne tylko przy więcej niż jednym modemie."
+        }
+      }
+    }
+  }
+}

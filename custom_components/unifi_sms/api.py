@@ -9,7 +9,7 @@ import logging
 import asyncssh
 
 from . import hook
-from .sms import split_text, ubus_command
+from .sms import ubus_command
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,6 +41,11 @@ def generate_key() -> tuple[str, str]:
 
 def public_key_of(private_key: str) -> str:
     return asyncssh.import_private_key(private_key).export_public_key().decode().strip()
+
+
+def fingerprint(public_key: str) -> str:
+    """SHA256 fingerprint as printed by ssh-keygen -l."""
+    return asyncssh.import_public_key(public_key).get_fingerprint("sha256")
 
 
 class U5GModem:
@@ -152,17 +157,26 @@ class U5GModem:
             raise U5GError(f"{method} failed with {data['error']} (see `logread` on the modem)")
         return data.get("result", {})
 
-    async def send(self, to: str, text: str, iccid: str | None = None) -> int:
-        """Send text, split into modem-sized parts. Returns the part count."""
-        parts = split_text(text)
-        if not parts:
-            raise ValueError("empty message")
-        for part in parts:
-            params = {"to": to, "text": part}
-            if iccid:
-                params["iccid"] = iccid
-            await self.call("send-sms", params)
-        return len(parts)
+    async def send_part(self, to: str, text: str, iccid: str | None = None) -> None:
+        """Send one SMS; the caller splits text to fit MAX_TEXT_BYTES."""
+        params = {"to": to, "text": text}
+        if iccid:
+            params["iccid"] = iccid
+        await self.call("send-sms", params)
+
+    async def system_info(self) -> dict[str, str]:
+        """UniFi firmware version and board name, e.g. 5G-Link.7.5.3 / U5G-Max-Outdoor."""
+        result = await self._run(
+            "cat /etc/version; echo; grep '^board.name=' /etc/board.info 2>/dev/null", "system info"
+        )
+        lines = [line.strip() for line in str(result.stdout or "").splitlines() if line.strip()]
+        info: dict[str, str] = {}
+        for line in lines:
+            if line.startswith("board.name="):
+                info["model"] = line.partition("=")[2]
+            elif "version" not in info:
+                info["version"] = line
+        return info
 
     async def read_spool(self) -> list[tuple[str, dict | None]]:
         """Messages spooled by the receive hook, oldest first. Delete them with ack_spool()."""

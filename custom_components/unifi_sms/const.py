@@ -10,6 +10,10 @@ CONF_PRIVATE_KEY = "private_key"
 CONF_HOST_KEY = "host_key"
 CONF_ICCID = "iccid"
 CONF_RECIPIENTS = "recipients"
+CONF_TRUSTED = "trusted_senders"
+CONF_ONLY_TRUSTED = "only_trusted"
+CONF_DAILY_LIMIT = "daily_limit"
+CONF_ASCII_ONLY = "ascii_only"
 
 DEFAULT_PORT = 22
 DEFAULT_SCAN_INTERVAL = timedelta(seconds=15)

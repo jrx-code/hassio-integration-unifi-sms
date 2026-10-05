@@ -31,6 +31,7 @@ class UnifiSmsReceivedEvent(UnifiSmsEntity, EventEntity):
                     "text": message.get("text"),
                     "timestamp": message.get("timestamp"),
                     "iccid": message.get("iccid"),
+                    "trusted": message.get("trusted"),
                 },
             )
         super()._handle_coordinator_update()

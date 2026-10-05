@@ -9,7 +9,8 @@ but nothing below was tested on them.
 The UniFi Network application has no SMS interface, and the controller API exposes
 only SIM, APN and radio data. SMS works on the device itself, which needs SSH:
 
-1. UniFi Network → Settings → System → Device SSH Authentication. Through the API
+1. UniFi Network → UniFi Devices → Device Updates and Settings → Device SSH Settings
+   (Settings → System → Advanced → Device Authentication before 9.2.87). Through the API
    this is `rest/setting/mgmt/<id>` with `x_ssh_enabled`, `x_ssh_keys` and
    `x_ssh_auth_password_enabled`. It is a **site-wide** setting: every adopted
    device accepts SSH afterwards. Prefer key-only.

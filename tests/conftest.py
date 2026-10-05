@@ -24,7 +24,9 @@ def modem():
     instance.read_spool = AsyncMock(return_value=[])
     instance.ack_spool = AsyncMock()
     instance.remove_hook = AsyncMock()
-    instance.send = AsyncMock(return_value=1)
+    instance.send_part = AsyncMock()
+    instance.system_info = AsyncMock(return_value={"version": "5G-Link.7.5.3", "model": "U5G-Max-Outdoor"})
+    instance.hook_state = "present"
     instance.close = AsyncMock()
     instance.server_host_key = MagicMock(return_value=HOST_KEY)
     with (

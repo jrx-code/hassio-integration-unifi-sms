@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import shlex
+import unicodedata
 
 from .const import MAX_TEXT_BYTES
 
@@ -54,6 +55,45 @@ def parse_recipients(value: str | list[str] | None) -> list[str]:
         return []
     items = value if isinstance(value, list) else re.split(r"[,;\n]", value)
     return [normalize_number(item) for item in items if item.strip()]
+
+
+_ASCII_MAP = str.maketrans(
+    {
+        "ł": "l",
+        "Ł": "L",
+        "đ": "d",
+        "Đ": "D",
+        "ø": "o",
+        "Ø": "O",
+        "ß": "ss",
+        "“": '"',
+        "”": '"',
+        "„": '"',
+        "‘": "'",
+        "’": "'",
+        "–": "-",
+        "—": "-",
+        "…": "...",
+        " ": " ",
+    }
+)
+
+
+def to_ascii(text: str) -> str:
+    """Drop diacritics (zażółć -> zazolc) so every character costs one byte of the 64-byte limit."""
+    decomposed = unicodedata.normalize("NFKD", text.translate(_ASCII_MAP))
+    stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
+    return stripped.encode("ascii", "replace").decode("ascii")
+
+
+def is_trusted(sender: str | None, trusted: list[str]) -> bool:
+    """True when the sender's number is on the list; alphanumeric senders never match."""
+    if not sender or not trusted:
+        return False
+    try:
+        return normalize_number(sender) in trusted
+    except ValueError:
+        return False
 
 
 def ubus_command(method: str, params: dict | None = None, timeout: int = 60) -> str:

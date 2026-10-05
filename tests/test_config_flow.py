@@ -112,3 +112,43 @@ async def test_options_validate_numbers(hass, modem):
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options[CONF_RECIPIENTS] == "+48123456789"
+
+
+async def test_reconfigure_changes_address(hass, modem):
+    entry = _entry(hass)
+    result = await entry.start_reconfigure_flow(hass)
+    assert result["step_id"] == "reconfigure"
+    with patch("custom_components.unifi_sms.async_setup_entry", return_value=True):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "10.0.0.9", "port": 2222, "username": "other"}
+        )
+        await hass.async_block_till_done()
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert (entry.data["host"], entry.data["port"], entry.data["username"]) == ("10.0.0.9", 2222, "other")
+    assert entry.data[CONF_HOST_KEY] == "ssh-ed25519 OLD"
+
+
+async def test_reconfigure_rejects_other_modem(hass, modem):
+    entry = _entry(hass)
+    result = await entry.start_reconfigure_flow(hass)
+    modem.device_info.return_value = {"imei": "999"}
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"host": "10.0.0.9", "port": 22, "username": "admin"}
+    )
+    assert result["reason"] == "wrong_device"
+
+
+async def test_options_only_trusted_needs_list(hass, modem):
+    entry = _entry(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"only_trusted": True})
+    assert result["errors"] == {"trusted_senders": "trusted_required"}
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {"only_trusted": True, "trusted_senders": "+48 111 111 111", "daily_limit": 20, "ascii_only": True},
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.options["trusted_senders"] == "+48111111111"
+    assert entry.options["daily_limit"] == 20
+    assert entry.options["ascii_only"] is True

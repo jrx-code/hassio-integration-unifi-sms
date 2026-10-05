@@ -12,6 +12,9 @@ from homeassistant.const import CONF_HOST, CONF_PORT, CONF_USERNAME
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     BooleanSelector,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -26,7 +29,18 @@ from .api import (
     generate_key,
     public_key_of,
 )
-from .const import CONF_HOST_KEY, CONF_ICCID, CONF_PRIVATE_KEY, CONF_RECIPIENTS, DEFAULT_PORT, DOMAIN
+from .const import (
+    CONF_ASCII_ONLY,
+    CONF_DAILY_LIMIT,
+    CONF_HOST_KEY,
+    CONF_ICCID,
+    CONF_ONLY_TRUSTED,
+    CONF_PRIVATE_KEY,
+    CONF_RECIPIENTS,
+    CONF_TRUSTED,
+    DEFAULT_PORT,
+    DOMAIN,
+)
 from .coordinator import UnifiSmsConfigEntry
 from .sms import parse_recipients
 
@@ -163,25 +177,75 @@ class UnifiSmsConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Change address, port or user; the key and the pinned host key stay."""
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            data = {
+                **entry.data,
+                CONF_HOST: user_input[CONF_HOST].strip(),
+                CONF_PORT: user_input[CONF_PORT],
+                CONF_USERNAME: user_input[CONF_USERNAME].strip(),
+            }
+            try:
+                _host_key, device, _sim = await _probe(data, entry.data[CONF_HOST_KEY])
+            except U5GError as err:
+                errors["base"] = _error_key(err)
+            else:
+                if device.get("imei") != entry.unique_id:
+                    return self.async_abort(reason="wrong_device")
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates={k: data[k] for k in (CONF_HOST, CONF_PORT, CONF_USERNAME)},
+                )
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_HOST): str,
+                vol.Required(CONF_PORT): vol.All(int, vol.Range(1, 65535)),
+                vol.Required(CONF_USERNAME): str,
+            }
+        )
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(schema, user_input or entry.data),
+            description_placeholders={"public_key": public_key_of(entry.data[CONF_PRIVATE_KEY])},
+            errors=errors,
+        )
+
 
 class UnifiSmsOptionsFlow(OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
-            try:
-                recipients = parse_recipients(user_input.get(CONF_RECIPIENTS, ""))
-            except ValueError:
-                errors[CONF_RECIPIENTS] = "invalid_number"
-            else:
+            numbers: dict[str, list[str]] = {}
+            for key in (CONF_RECIPIENTS, CONF_TRUSTED):
+                try:
+                    numbers[key] = parse_recipients(user_input.get(key, ""))
+                except ValueError:
+                    errors[key] = "invalid_number"
+            if not errors and user_input.get(CONF_ONLY_TRUSTED) and not numbers[CONF_TRUSTED]:
+                errors[CONF_TRUSTED] = "trusted_required"
+            if not errors:
                 return self.async_create_entry(
                     data={
-                        CONF_RECIPIENTS: ", ".join(recipients),
+                        CONF_RECIPIENTS: ", ".join(numbers[CONF_RECIPIENTS]),
                         CONF_ICCID: (user_input.get(CONF_ICCID) or "").strip(),
+                        CONF_TRUSTED: ", ".join(numbers[CONF_TRUSTED]),
+                        CONF_ONLY_TRUSTED: bool(user_input.get(CONF_ONLY_TRUSTED)),
+                        CONF_DAILY_LIMIT: int(user_input.get(CONF_DAILY_LIMIT) or 0),
+                        CONF_ASCII_ONLY: bool(user_input.get(CONF_ASCII_ONLY)),
                     }
                 )
         schema = vol.Schema(
             {
                 vol.Optional(CONF_RECIPIENTS): str,
+                vol.Optional(CONF_TRUSTED): str,
+                vol.Optional(CONF_ONLY_TRUSTED, default=False): BooleanSelector(),
+                vol.Optional(CONF_DAILY_LIMIT, default=0): NumberSelector(
+                    NumberSelectorConfig(min=0, max=10000, step=1, mode=NumberSelectorMode.BOX)
+                ),
+                vol.Optional(CONF_ASCII_ONLY, default=False): BooleanSelector(),
                 vol.Optional(CONF_ICCID): str,
             }
         )

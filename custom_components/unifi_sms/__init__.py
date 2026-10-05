@@ -10,7 +10,6 @@ from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, Supp
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     ConfigEntryNotReady,
-    HomeAssistantError,
     ServiceValidationError,
 )
 from homeassistant.helpers import config_validation as cv
@@ -23,7 +22,7 @@ from .sms import parse_recipients
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.EVENT, Platform.NOTIFY, Platform.SENSOR]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.EVENT, Platform.NOTIFY, Platform.SENSOR]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -54,12 +53,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             raise ServiceValidationError(str(err)) from err
         if not recipients:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_recipients")
-        parts = 0
-        for number in recipients:
-            try:
-                parts = await coordinator.modem.send(number, call.data[ATTR_MESSAGE], coordinator.iccid)
-            except U5GError as err:
-                raise HomeAssistantError(f"SMS to {number} failed: {err}") from err
+        parts = await coordinator.async_send(recipients, call.data[ATTR_MESSAGE])
         return {"recipients": recipients, "parts_per_recipient": parts}
 
     hass.services.async_register(

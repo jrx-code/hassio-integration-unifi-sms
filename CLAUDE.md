@@ -13,9 +13,10 @@ custom_components/unifi_sms/
 ├── api.py          # U5GModem: one asyncssh connection, ubus calls, hook install on connect
 ├── hook.py         # shell scripts for the receive hook + spool parsing (pure)
 ├── sms.py          # text splitting (64-byte limit), E.164 parsing, ubus command (pure)
-├── coordinator.py  # 15 s poll: spool -> events, SIM state every 5 min, seen ids in Store
-├── config_flow.py  # key generation, host key pinning, reauth, options (recipients, ICCID)
-└── event.py, notify.py, sensor.py, services.yaml
+├── coordinator.py  # 15 s poll: spool -> events (trusted flag), SIM state; async_send: limit, ASCII, counters
+├── config_flow.py  # key generation, host key pinning, reauth, reconfigure, options
+├── diagnostics.py  # redacted download
+└── binary_sensor.py, event.py, notify.py, sensor.py, services.yaml, translations/{en,pl}.json
 ```
 
 ## Commands

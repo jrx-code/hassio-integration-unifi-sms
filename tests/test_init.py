@@ -96,7 +96,7 @@ async def test_send_action(hass, modem):
     response = await hass.services.async_call(
         DOMAIN, "send", {"to": "+48 123 456 789", "message": "Test"}, blocking=True, return_response=True
     )
-    modem.send.assert_awaited_once_with("+48123456789", "Test", "8900")
+    modem.send_part.assert_awaited_once_with("+48123456789", "Test", "8900")
     assert response == {"recipients": ["+48123456789"], "parts_per_recipient": 1}
 
 
@@ -114,7 +114,7 @@ async def test_notify_uses_default_recipients(hass, modem):
         {"entity_id": "notify.unifi_5g_sms_test_mobile_sms", "message": "Alarm", "title": "Garage"},
         blocking=True,
     )
-    assert [c.args for c in modem.send.await_args_list] == [
+    assert [c.args for c in modem.send_part.await_args_list] == [
         ("+48111111111", "Garage: Alarm", None),
         ("+48222222222", "Garage: Alarm", None),
     ]
@@ -185,3 +185,108 @@ async def test_last_sms_sensor_restores(hass, modem):
     state = hass.states.get("sensor.unifi_5g_sms_test_mobile_last_sms")
     assert state.state == "Hello"
     assert state.attributes["from"] == "+48111111111"
+
+
+SENSOR_TODAY = "sensor.unifi_5g_sms_test_mobile_sms_sent_today"
+SENSOR_MONTH = "sensor.unifi_5g_sms_test_mobile_sms_sent_this_month"
+
+
+async def _send(hass, message, to="+48123456789"):
+    return await hass.services.async_call(
+        DOMAIN, "send", {"to": to, "message": message}, blocking=True, return_response=True
+    )
+
+
+async def test_device_and_diagnostic_entities(hass, modem):
+    from homeassistant.helpers import device_registry as dr
+
+    entry = await _setup(hass)
+    (device,) = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
+    assert (DOMAIN, IMEI) in device.identifiers
+    assert device.model == "U5G-Max-Outdoor"
+    assert device.sw_version == "5G-Link.7.5.3"
+
+    conn = hass.states.get("binary_sensor.unifi_5g_sms_test_mobile_modem_connection")
+    assert conn.state == "on"
+    assert conn.attributes["host"] == "10.0.0.2"
+    assert conn.attributes["username"] == "admin"
+    assert conn.attributes["host_key_fingerprint"].startswith("SHA256:")
+    assert hass.states.get("sensor.unifi_5g_sms_test_mobile_receive_hook").state == "active"
+
+
+async def test_connection_sensor_goes_off_when_polling_fails(hass, modem):
+    await _setup(hass)
+    modem.read_spool.side_effect = U5GConnectionError("gone")
+    await _tick(hass)
+    assert hass.states.get("binary_sensor.unifi_5g_sms_test_mobile_modem_connection").state == "off"
+
+
+async def test_counters_and_daily_limit(hass, modem):
+    from homeassistant.exceptions import HomeAssistantError
+
+    await _setup(hass, {"daily_limit": 3})
+    response = await _send(hass, "x" * 100)  # 2 parts
+    assert response["parts_per_recipient"] == 2
+    await hass.async_block_till_done()
+    assert hass.states.get(SENSOR_TODAY).state == "2"
+    assert hass.states.get(SENSOR_MONTH).state == "2"
+
+    with pytest.raises(HomeAssistantError, match="limit"):
+        await _send(hass, "x" * 100)  # would make 4 > 3
+    assert modem.send_part.await_count == 2
+
+    await _send(hass, "ok")  # 3 == limit
+    assert hass.states.get(SENSOR_TODAY).state == "3"
+
+
+async def test_counters_roll_over_at_midnight(hass, modem, freezer):
+    freezer.move_to("2026-10-05 22:00:00+00:00")
+    await _setup(hass)
+    await _send(hass, "a")
+    freezer.move_to("2026-10-06 22:30:00+00:00")
+    await _send(hass, "b")
+    assert hass.states.get(SENSOR_TODAY).state == "1"
+    assert hass.states.get(SENSOR_MONTH).state == "2"
+
+
+async def test_ascii_only_option(hass, modem):
+    await _setup(hass, {"ascii_only": True})
+    await _send(hass, "Zażółć gęślą jaźń „cytat” – koniec…")
+    modem.send_part.assert_awaited_once_with("+48123456789", 'Zazolc gesla jazn "cytat" - koniec...', None)
+
+
+async def test_trusted_attribute(hass, modem):
+    events = async_capture_events(hass, EVENT_SMS_RECEIVED)
+    await _setup(hass, {"trusted_senders": "+48111111111"})
+    modem.read_spool.return_value = [("1000-1.json", SMS_1), ("1001-2.json", SMS_2)]
+    await _tick(hass)
+    assert [(e.data["id"], e.data["trusted"]) for e in events] == [("a-1", True), ("a-2", False)]
+    assert hass.states.get("sensor.unifi_5g_sms_test_mobile_last_sms").attributes["trusted"] is False
+
+
+async def test_only_trusted_drops_others(hass, modem):
+    events = async_capture_events(hass, EVENT_SMS_RECEIVED)
+    await _setup(hass, {"trusted_senders": "+48111111111", "only_trusted": True})
+    modem.read_spool.return_value = [("1000-1.json", SMS_1), ("1001-2.json", SMS_2)]
+    await _tick(hass)
+    assert [e.data["id"] for e in events] == ["a-1"]
+    assert hass.states.get("sensor.unifi_5g_sms_test_mobile_last_sms").attributes["from"] == "+48111111111"
+    # The untrusted one is still acknowledged and never replayed.
+    modem.ack_spool.assert_awaited_with(["1000-1.json", "1001-2.json"])
+    await _tick(hass)
+    assert len(events) == 1
+
+
+async def test_diagnostics_redact(hass, modem):
+    from homeassistant.components.diagnostics import REDACTED
+
+    from custom_components.unifi_sms.diagnostics import async_get_config_entry_diagnostics
+
+    entry = await _setup(hass, {"recipients": "+48111111111", "trusted_senders": "+48111111111"})
+    diag = await async_get_config_entry_diagnostics(hass, entry)
+    assert diag["entry"]["data"][CONF_PRIVATE_KEY] == REDACTED
+    assert diag["entry"]["data"][CONF_HOST_KEY] == REDACTED
+    assert diag["entry"]["options"]["recipients"] == REDACTED
+    assert diag["modem"]["sim"]["iccid"] == REDACTED
+    assert diag["modem"]["system"]["model"] == "U5G-Max-Outdoor"
+    assert "+48111111111" not in str(diag)

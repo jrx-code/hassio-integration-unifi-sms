@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to the UniFi 5G modem",
-        "description": "The modem must accept Device SSH (UniFi Network → Settings → System → Device SSH Authentication). Leave the private key empty to generate a new one.",
+        "description": "Home Assistant connects to the modem itself over SSH, so it needs the modem's address and the Device SSH login.\n\n**Modem IP address**: UniFi Network → UniFi Devices → your 5G modem → Overview → IP Address. On a UniFi gateway the modem usually sits on an internal network that is routed from the LAN.\n\n**Device SSH username**: UniFi Network → UniFi Devices → Device Updates and Settings (bottom left) → Device SSH Settings → Device SSH Authentication (Settings → System → Advanced → Device Authentication on UniFi Network older than 9.2.87). Turn it on there if it is off.\n\nLeave the private key empty to let Home Assistant generate one; the next step shows the public key to add in UniFi.",
         "data": {
           "host": "Modem IP address",
           "port": "SSH port",
@@ -13,13 +13,22 @@
       },
       "authorize": {
         "title": "Authorise the key",
-        "description": "Add this public key in UniFi Network → Settings → System → Device SSH Authentication → SSH keys, wait until the modem is provisioned (about a minute), then submit.\n\n`{public_key}`"
+        "description": "Add this public key in UniFi Network → UniFi Devices → Device Updates and Settings (bottom left) → Device SSH Settings → SSH Keys, wait until the modem is provisioned (about a minute), then submit.\n\n`{public_key}`"
       },
       "reauth_confirm": {
         "title": "Reconnect to the modem",
-        "description": "The modem rejected the connection. Make sure this public key is still listed in UniFi Network Device SSH keys:\n\n`{public_key}`\n\nTick the box only if the modem was replaced or reset and its host key changed on purpose.",
+        "description": "The modem rejected the connection. Make sure this public key is still listed in UniFi Network → UniFi Devices → Device Updates and Settings (bottom left) → Device SSH Settings → SSH Keys:\n\n`{public_key}`\n\nTick the box only if the modem was replaced or reset and its host key changed on purpose.",
         "data": {
           "accept_new_host_key": "Accept a new host key"
+        }
+      },
+      "reconfigure": {
+        "title": "Change the modem connection",
+        "description": "Use this when the modem's IP address or the Device SSH username changed. The key stays the same and must remain in UniFi Network → UniFi Devices → Device Updates and Settings (bottom left) → Device SSH Settings → SSH Keys:\n\n`{public_key}`",
+        "data": {
+          "host": "Modem IP address",
+          "port": "SSH port",
+          "username": "Device SSH username"
         }
       }
     },
@@ -34,7 +43,8 @@
     "abort": {
       "already_configured": "This modem is already configured.",
       "reauth_successful": "Reconnected.",
-      "wrong_device": "This is a different modem than the configured one."
+      "wrong_device": "This is a different modem than the configured one.",
+      "reconfigure_successful": "Connection settings updated."
     }
   },
   "options": {
@@ -43,16 +53,25 @@
         "title": "SMS options",
         "data": {
           "recipients": "Default recipients for the notify entity",
-          "iccid": "Send from SIM (ICCID)"
+          "iccid": "Send from SIM (ICCID)",
+          "trusted_senders": "Trusted senders",
+          "only_trusted": "Ignore SMS from other senders",
+          "daily_limit": "Daily SMS limit",
+          "ascii_only": "Send without diacritics"
         },
         "data_description": {
           "recipients": "E.164 numbers separated by commas, e.g. +48123456789.",
-          "iccid": "Leave empty to use the active SIM."
+          "iccid": "Leave empty to use the active SIM.",
+          "trusted_senders": "E.164 numbers separated by commas. Incoming SMS get the attribute `trusted`; use it in automations that act on SMS commands.",
+          "only_trusted": "Untrusted SMS do not fire events and do not update the last SMS sensor.",
+          "daily_limit": "Maximum SMS parts sent per day, 0 = no limit. Each 64-byte part counts as one SMS.",
+          "ascii_only": "Turns zażółć into zazolc. Every character then takes one byte, so more text fits in one SMS."
         }
       }
     },
     "error": {
-      "invalid_number": "Use E.164 numbers with a country code, e.g. +48123456789."
+      "invalid_number": "Use E.164 numbers with a country code, e.g. +48123456789.",
+      "trusted_required": "Add at least one trusted sender or turn off ignoring other senders."
     }
   },
   "entity": {
@@ -64,6 +83,9 @@
             "state": {
               "received": "Received"
             }
+          },
+          "trusted": {
+            "name": "Trusted sender"
           }
         }
       }
@@ -94,6 +116,45 @@
           },
           "iccid": {
             "name": "SIM (ICCID)"
+          },
+          "trusted": {
+            "name": "Trusted sender"
+          }
+        }
+      },
+      "receive_hook": {
+        "name": "Receive hook",
+        "state": {
+          "active": "Active",
+          "anchor_missing": "Cannot be installed (firmware changed)",
+          "failed": "Failed"
+        }
+      },
+      "sent_today": {
+        "name": "SMS sent today"
+      },
+      "sent_month": {
+        "name": "SMS sent this month"
+      }
+    },
+    "binary_sensor": {
+      "connection": {
+        "name": "Modem connection",
+        "state_attributes": {
+          "host": {
+            "name": "Host"
+          },
+          "port": {
+            "name": "Port"
+          },
+          "username": {
+            "name": "Username"
+          },
+          "host_key_fingerprint": {
+            "name": "Host key fingerprint"
+          },
+          "receive_hook": {
+            "name": "Receive hook"
           }
         }
       }
@@ -105,6 +166,12 @@
     },
     "pick_entry": {
       "message": "Pass config_entry_id: there is not exactly one loaded UniFi 5G SMS entry."
+    },
+    "daily_limit": {
+      "message": "Daily SMS limit reached: {sent} of {limit} sent today, this message needs {needed}."
+    },
+    "empty_message": {
+      "message": "The message is empty."
     }
   },
   "services": {
