@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -89,7 +91,12 @@ async def test_reauth_keeps_pin_unless_accepted(hass, modem):
     assert result["errors"] == {"base": "host_key_changed"}
 
     modem.device_info.side_effect = None
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"accept_new_host_key": True})
+    # Success reloads the entry; keep that reload out of this test.
+    with patch("custom_components.unifi_sms.async_setup_entry", return_value=True):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"accept_new_host_key": True}
+        )
+        await hass.async_block_till_done()
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
     assert entry.data[CONF_HOST_KEY] == HOST_KEY
