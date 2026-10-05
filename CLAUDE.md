@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project overview
 
 Home Assistant integration `unifi_sms`: SMS through a UniFi U5G modem over SSH
-(asyncssh, pinned to the version HA core uses). Firmware findings live in
+(asyncssh >= 2.21.0, the version HA 2026.9 ships; hassfest rejects an exact pin that differs from HA dev). Firmware findings live in
 `docs/u5g-sms-internals.md`; keep it current when behaviour is verified on a device.
 
 ```

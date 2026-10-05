@@ -92,7 +92,7 @@ actions:
 ## Development
 
 ```sh
-pip install pytest pytest-homeassistant-custom-component asyncssh==2.21.0 ruff
+pip install pytest pytest-homeassistant-custom-component "asyncssh>=2.21.0" ruff
 pytest -q
 ruff check .
 ```
