@@ -5,13 +5,14 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
+from homeassistant.const import CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
 from .api import fingerprint
 from .const import CONF_HOST_KEY, CONF_ICCID, CONF_PRIVATE_KEY, CONF_RECIPIENTS, CONF_TRUSTED
 from .coordinator import UnifiSmsConfigEntry
 
-TO_REDACT = {CONF_PRIVATE_KEY, CONF_HOST_KEY, CONF_ICCID, CONF_RECIPIENTS, CONF_TRUSTED, "gid1"}
+TO_REDACT = {CONF_PRIVATE_KEY, CONF_HOST_KEY, CONF_ICCID, CONF_RECIPIENTS, CONF_TRUSTED, CONF_USERNAME, "gid1"}
 
 
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: UnifiSmsConfigEntry) -> dict[str, Any]:

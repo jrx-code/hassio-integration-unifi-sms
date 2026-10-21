@@ -286,6 +286,7 @@ async def test_diagnostics_redact(hass, modem):
     diag = await async_get_config_entry_diagnostics(hass, entry)
     assert diag["entry"]["data"][CONF_PRIVATE_KEY] == REDACTED
     assert diag["entry"]["data"][CONF_HOST_KEY] == REDACTED
+    assert diag["entry"]["data"]["username"] == REDACTED
     assert diag["entry"]["options"]["recipients"] == REDACTED
     assert diag["modem"]["sim"]["iccid"] == REDACTED
     assert diag["modem"]["system"]["model"] == "U5G-Max-Outdoor"
