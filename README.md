@@ -44,8 +44,10 @@ Details and firmware quirks: [docs/u5g-sms-internals.md](docs/u5g-sms-internals.
 
 ## Installation
 
-HACS → Integrations → ⋮ → Custom repositories → add this repository as an
-*Integration*, install **UniFi 5G SMS**, restart Home Assistant.
+The integration is in the HACS default store: open HACS, search for
+**UniFi 5G SMS**, download it and restart Home Assistant.
+
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=jrx-code&repository=hassio-integration-unifi-sms&category=integration)
 
 ## Setup
 
