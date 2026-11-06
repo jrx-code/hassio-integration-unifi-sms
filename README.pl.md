@@ -3,7 +3,7 @@
 [English](README.md) | **Polski**
 
 Wysyłanie i odbieranie SMS-ów w Home Assistant przez modem komórkowy **UniFi U5G**
-(testowane na U5G-Max-Outdoor, firmware 7.5.3) zaadoptowany przez bramę UniFi. Bez
+(testowane na U5G-Max-Outdoor, firmware 7.5.3 i 8.0.4) zaadoptowany przez bramę UniFi. Bez
 dodatkowego sprzętu i bez bramki SMS w chmurze, działa także wtedy, gdy padnie
 internet stacjonarny.
 
@@ -26,7 +26,7 @@ Szczegóły i osobliwości firmware: [docs/u5g-sms-internals.md](docs/u5g-sms-in
 
 | Urządzenie | Stan |
 |---|---|
-| UniFi 5G Max Outdoor (U5G-Max-Outdoor) | **przetestowane**, firmware 7.5.3 |
+| UniFi 5G Max Outdoor (U5G-Max-Outdoor) | **przetestowane**, firmware 7.5.3 i 8.0.4 |
 | UniFi 5G Max (wewnętrzny), UniFi 5G Backup (U5G) | powinno działać: ten sam demon `uiwwand` i te same metody ubus według [publicznego opisu](https://gist.github.com/keyz182/96a901d5ba1bf5f4b9701f5eba8729ad); nie testowane tutaj |
 | UniFi LTE Backup Pro (U-LTE-Pro) | nieobsługiwane: nie ma `uiwwand`. SMS-y są dostępne w wewnętrznym module Sierra Legato przez drugi skok SSH i `cm sms ...` ([przykład](https://github.com/CppBunny/unifi_sms_gateway)), co wymagałoby osobnego backendu |
 | UniFi Mobile Router (rodzina UMR) | nieobsługiwane: brak znanej metody odczytu i wysyłki SMS; prośby społeczności o tę funkcję nie mają odpowiedzi Ubiquiti ([wątek](https://community.ui.com/questions/UMR-Industrial-SMS/68d10331-f138-4e4e-90ef-e864eb91a639)) |
@@ -122,7 +122,7 @@ actions:
   wiadomości. Polska litera zajmuje 2 bajty; opcja wysyłki bez polskich znaków to
   omija.
 - **Przychodzący tekst o długości podzielnej przez 8 traci ostatni znak**
-  (firmware 7.5.3, wewnątrz `uiwwand`). `12345678` dochodzi jako `1234567`. W
+  (widoczne na firmware 7.5.3, wewnątrz `uiwwand`; nie sprawdzone ponownie na 8.0.4). `12345678` dochodzi jako `1234567`. W
   komendach SMS unikaj takich długości albo kończ komendę spacją lub kropką.
 - Wiadomości, które przyjdą między restartem modemu a ponownym połączeniem Home
   Assistant, nie trafiają do kolejki.

@@ -4,6 +4,24 @@ Observed on a **U5G-Max-Outdoor** (model `UMBBE631`, firmware 7.5.3, Sierra Wire
 EM9291 modem) adopted by a UDM Pro Max. Other U5G models share the `uiwwand` daemon,
 but nothing below was tested on them.
 
+### Firmware 8.0.4 (checked 2026-11-06)
+
+Build `5G-Link.ipq53xx_8.0.4+19980.261027.2037`, modem firmware
+`SWIX65C_03.04.10.01`. The official release notes mention nothing about SMS. On the
+device:
+
+- `send-sms`, `get-sms` and `get-sim-state` answer as on 7.5.3; `ubus` still exposes a
+  single `uiwwand call` method. There is still no `delete-sms` or SMS storage method.
+- The outgoing limit is still 64 bytes (`cmp r0, #0x40` before
+  `ctl: send-sms: text too long` in `/usr/bin/uiwwand`).
+- `/etc/mbbcfg/uiwwand_event.sh` still has the `sms="$(cat -)"` anchor; the hook
+  reinstalled itself after the upgrade reboot.
+- `uiwwand` carries `WMS concat:` log strings (multi-part messages are assembled
+  before the event script runs) and SMS-over-IMS QMI calls. Whether these are new in
+  8.x is not known: no 7.5.3 binary was kept for comparison.
+- Not retested: the lost last character on lengths that are a multiple of 8 (needs
+  an incoming SMS from a phone).
+
 ## Access
 
 The UniFi Network application has no SMS interface, and the controller API exposes

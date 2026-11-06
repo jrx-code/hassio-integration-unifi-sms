@@ -3,7 +3,7 @@
 **English** | [Polski](README.pl.md)
 
 Send and receive SMS in Home Assistant through the cellular modem of a **UniFi U5G**
-(tested on U5G-Max-Outdoor, firmware 7.5.3) adopted by a UniFi gateway. No extra
+(tested on U5G-Max-Outdoor, firmware 7.5.3 and 8.0.4) adopted by a UniFi gateway. No extra
 hardware, no cloud SMS provider, and it keeps working when the fixed-line internet
 is down.
 
@@ -26,7 +26,7 @@ Details and firmware quirks: [docs/u5g-sms-internals.md](docs/u5g-sms-internals.
 
 | Device | Status |
 |---|---|
-| UniFi 5G Max Outdoor (U5G-Max-Outdoor) | **tested**, firmware 7.5.3 |
+| UniFi 5G Max Outdoor (U5G-Max-Outdoor) | **tested**, firmware 7.5.3 and 8.0.4 |
 | UniFi 5G Max (indoor), UniFi 5G Backup (U5G) | expected to work: same `uiwwand` daemon and ubus methods, per a [public write-up](https://gist.github.com/keyz182/96a901d5ba1bf5f4b9701f5eba8729ad); not tested here |
 | UniFi LTE Backup Pro (U-LTE-Pro) | not supported: no `uiwwand`. SMS is reachable on the inner Sierra Legato module through a second SSH hop and `cm sms ...` ([example](https://github.com/CppBunny/unifi_sms_gateway)), which would need its own backend |
 | UniFi Mobile Router (UMR family) | not supported: no known way to read or send SMS; community requests for the feature have no Ubiquiti answer ([thread](https://community.ui.com/questions/UMR-Industrial-SMS/68d10331-f138-4e4e-90ef-e864eb91a639)) |
@@ -120,7 +120,7 @@ actions:
 - **64 bytes per SMS** on the outgoing side (firmware). Longer texts go out as
   several messages.
 - **Incoming texts whose length is a multiple of 8 lose their last character**
-  (firmware 7.5.3, inside `uiwwand`). `12345678` arrives as `1234567`. For SMS
+  (seen on firmware 7.5.3, inside `uiwwand`; not retested on 8.0.4). `12345678` arrives as `1234567`. For SMS
   commands, avoid such lengths or end the command with a space or a dot.
 - Messages that arrive between a modem reboot and Home Assistant's reconnect are
   not spooled.
